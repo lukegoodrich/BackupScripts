@@ -1,0 +1,65 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "BackupUser" : {
+            "Type": "AWS::IAM::User",
+            "Properties": {            
+                "UserName" : "BackupUser"
+            }
+        },
+        "LightroomBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "VersioningConfiguration" : {
+                    "Status" : "Enabled"
+                }
+            }
+        },
+        "LightroomBucketPolicy" : {
+            "Type" : "AWS::S3::BucketPolicy",
+            "Properties" : {    
+                "Bucket" : { "Ref" : "LightroomBucket" },
+                "PolicyDocument" : {
+                    "Id" : "BackuperUserSync",
+                    "Version": "2012-10-17",
+                    "Statement" : [ {
+                        "Sid" : "AllowBackupUserUserToSync",
+                        "Action" : [ 
+                            "s3:DeleteObject",
+                            "s3:ListBucket",
+                            "s3:PutObject",
+                            "s3:PutObjectAcl"
+                        ],
+                        "Effect" : "Allow",
+                        "Resource" : [ 
+                            { 
+                                "Fn::GetAtt" : [ "LightroomBucket", "Arn" ] 
+                            }, { 
+                                "Fn::Join" : [
+                                    "", 
+                                    [  { "Fn::GetAtt" : [ "LightroomBucket", "Arn" ] } , "/*" ]
+                                ] 
+                            }],
+                        "Principal" : {
+                            "AWS" : { "Fn::GetAtt" : [ "BackupUser", "Arn" ] }
+                        }
+                    } ]
+                }
+            }
+         }
+    },
+    "Outputs" : {
+        "LightroomBucketName" : {
+          "Description": "The name of the S3 bucket created to contain backups",  
+          "Value" : { 
+            "Ref" : "LightroomBucket" 
+          }
+        },
+        "BackupUserName" : {
+          "Description": "The name of the IAM user to use when synchronising to the bucket",  
+          "Value" : { 
+              "Ref" : "BackupUser" 
+            }
+        }
+      }
+}
